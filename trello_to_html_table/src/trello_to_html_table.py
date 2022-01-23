@@ -8,7 +8,7 @@ def trello_to_html_table(file_path: Path):
     with open(file_path, 'r', encoding='cp850') as file:
         raw = json.load(file)
 
-    for card in get_cards_in_list(raw, "Agenda"):
+    for card in get_cards_in_list(raw, "agenda"):
         if not card_is_cover(card):
             print(card["name"], card["desc"])
 
@@ -36,7 +36,7 @@ def card_belongs_to_list(card: Dict[str, str], list_id: str):
 def get_list_id(raw: Dict[str, str], list_name: str) -> str:
     lists = raw.get("lists", {})
     for item in lists:
-        if str(item.get("name", "")).startswith(list_name):
+        if str(item.get("name", "")).lower().startswith(list_name.lower()):
             return item.get("id")
 
     return ""
