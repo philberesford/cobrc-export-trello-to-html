@@ -4,42 +4,116 @@ from pathlib import Path
 import os
 import re
 
+HEADER_CELL_BACKGROUND_COLOUR = "#D6E3BC"
+
+
 def trello_to_html_table(file_path: Path):
     with open(file_path, 'r', encoding='cp850') as file:
         raw = json.load(file)
 
-    for card in get_cards_in_list(raw, "new"):
+    write_styles()
+    write_agenda(raw)
+    write_horizontal_rule()
+    write_actions(raw)
+
+
+def write_styles():
+    write_html("<style>"
+               "table, tr, td, th{ border-collapse: collapse; border: 1px solid black; }"
+               "</style>")
+
+
+def write_agenda(raw: Dict[str, str]) -> None:
+    html_table_values: List[List[str]] = []
+    list_names = ["agenda"]
+    counter = 1
+    for card in get_cards_in_lists(raw, list_names):
         if not card_is_cover(card):
             title, owner = get_title_and_owner(card["name"])
             desc = card["desc"]
-            print(title, owner, desc)
+            html_table_values.append([f"{counter}. {title}<br />{desc}", html_strong(owner)])
+            counter += 1
+
+    html_table_headers = ["Agenda Item", "Owner(s)"]
+    write_table(html_table_headers, html_table_values)
+
+
+def write_actions(raw: Dict[str, str]) -> None:
+    html_table_values: List[List[str]] = []
+    list_names = ["closed this month", "new", "open"]
+    for card in get_cards_in_lists(raw, list_names):
+        title, owner = get_title_and_owner(card["name"])
+        if not card_is_cover(card):
+            card_list_name = get_list_name(raw, card.get("idList"))
+            desc = card["desc"]
+            html_table_values.append([f"{title}<br /><br />{desc}", card_list_name, html_strong(owner)])
+
+    html_table_headers = ["Action", "Status", "Owner(s)"]
+    write_table(html_table_headers, html_table_values)
+
+
+def html_strong(value: str) -> str:
+    return f"<strong>{value}</value>"
+
+
+def write_horizontal_rule():
+    write_html("<hr />")
+
+
+def write_table(headers: List[str], values: List[List[str]]):
+    write_html("<table width=\"100%\" cellpadding=\"9\", cellspacing=\"0\" border=\"0\">")
+    write_table_headers(headers)
+    write_html("<tbody>")
+    for row in values:
+        write_table_cells(row)
+    write_html("</tbody></table>")
+
+
+def write_table_cells(row: List[str]):
+    write_html("<tr>")
+    for cell in row:
+        write_html(f"<td>{cell}</td>")
+    write_html("</tr>")
+
+
+def write_table_headers(headers: List[str], background_colour: str = HEADER_CELL_BACKGROUND_COLOUR):
+    write_html("<thead><tr>")
+    for header in headers:
+        write_html(f"<th align=\"left\" bgcolor=\"{background_colour}\">{header}</th>")
+
+    write_html("</tr> </thead>")
+
+
+def write_html(s: str) -> None:
+    s = s.replace("\n", "\n<br />")
+    print(s, end="")
 
 
 def get_title_and_owner(entry: str) -> (str, str):
+    # Extract everything before the [] as the title, and everything between the [] is the owner
     values = re.findall(r'(.*)\[(.*?)\]', entry)
+    title, owner = "", ""
     if len(values) > 0:
-        first = values [0]
-        if len(first) > 0:
-            title = first[0]
+        first = values[0]
+        title = first[0] if len(first) > 0 else ""
+        owner = first[1] if len(first) > 1 else ""
 
-        if len(first) > 1:
-            owner = first[1]
-
+    # If there are no 'owners' associated with the entry, then return the entry, unaltered.
+    title = entry if title == "" else title
     return title, owner
-
-def get_owner(entry: str):
-    values = re.findall(r'\[(.*?)\]', entry)
-    return ",".join(values)
 
 
 def card_is_cover(card: Dict[str, str]) -> bool:
-    return card.get("cover", {}).get("idAttachment") is not None
+    has_uploaded_background = card.get("cover", {}).get("idUploadedBackground") is not None
+    has_id_attachment = card.get("cover", {}).get("idAttachment") is not None
+    return has_uploaded_background or has_id_attachment
 
 
-def get_cards_in_list(raw: Dict[str, str], list_name: str) -> List[Dict[str, str]]:
-    target_list_id = get_list_id(raw, list_name)
+def get_cards_in_lists(raw: Dict[str, str], list_names: List[str]) -> List[Dict[str, str]]:
+    list_ids = [get_list_id(raw, list_name) for list_name in list_names]
+
     return [card for card in raw.get("cards", {}) if
-            card_belongs_to_list(card, target_list_id) and not card_is_closed(card)]
+            card_belongs_in_set_of_lists(card, list_ids) and not card_is_closed(card)]
 
 
 def card_is_closed(card: Dict[str, str]) -> bool:
@@ -47,9 +121,18 @@ def card_is_closed(card: Dict[str, str]) -> bool:
     return card_closed
 
 
-def card_belongs_to_list(card: Dict[str, str], list_id: str):
+def card_belongs_in_set_of_lists(card: Dict[str, str], list_ids: List[str]):
     card_list_id = card.get("idList", "")
-    return card_list_id == list_id
+    return card_list_id in list_ids
+
+
+def get_list_name(raw: Dict[str, str], list_id: str) -> str:
+    lists = raw.get("lists", {})
+    for item in lists:
+        if item.get("id") == list_id:
+            return str(item.get("name", ""))
+
+    return ""
 
 
 def get_list_id(raw: Dict[str, str], list_name: str) -> str:
