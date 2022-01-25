@@ -2,15 +2,34 @@ import json
 from typing import Dict, List
 from pathlib import Path
 import os
-
+import re
 
 def trello_to_html_table(file_path: Path):
     with open(file_path, 'r', encoding='cp850') as file:
         raw = json.load(file)
 
-    for card in get_cards_in_list(raw, "agenda"):
+    for card in get_cards_in_list(raw, "new"):
         if not card_is_cover(card):
-            print(card["name"], card["desc"])
+            title, owner = get_title_and_owner(card["name"])
+            desc = card["desc"]
+            print(title, owner, desc)
+
+
+def get_title_and_owner(entry: str) -> (str, str):
+    values = re.findall(r'(.*)\[(.*?)\]', entry)
+    if len(values) > 0:
+        first = values [0]
+        if len(first) > 0:
+            title = first[0]
+
+        if len(first) > 1:
+            owner = first[1]
+
+    return title, owner
+
+def get_owner(entry: str):
+    values = re.findall(r'\[(.*?)\]', entry)
+    return ",".join(values)
 
 
 def card_is_cover(card: Dict[str, str]) -> bool:
