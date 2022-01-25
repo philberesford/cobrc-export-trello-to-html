@@ -1,3 +1,4 @@
+import argparse
 import json
 from typing import Dict, List
 from pathlib import Path
@@ -5,7 +6,6 @@ import os
 import re
 
 HEADER_CELL_BACKGROUND_COLOUR = "#D6E3BC"
-
 
 def trello_to_html_table(file_path: Path):
     with open(file_path, 'r', encoding='cp850') as file:
@@ -145,5 +145,9 @@ def get_list_id(raw: Dict[str, str], list_name: str) -> str:
 
 
 if __name__ == "__main__":
-    path = Path(os.getcwd(), "export.json")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--sourcePath", help='Specify the path to the export from Trello')
+    args = parser.parse_args()
+
+    path = Path(os.getcwd(), args.sourcePath)
     trello_to_html_table(path)
