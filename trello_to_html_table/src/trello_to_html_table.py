@@ -6,22 +6,15 @@ import os
 import re
 
 HEADER_CELL_BACKGROUND_COLOUR = "#D6E3BC"
+TABLE_STYLE ="style=\"border-collapse: collapse; border: 1px solid black;\""
 
 def trello_to_html_table(file_path: Path):
-    with open(file_path, 'r', encoding='cp850') as file:
+    with open(file_path, 'r', encoding='utf-8') as file:
         raw = json.load(file)
 
-    write_styles()
     write_agenda(raw)
     write_horizontal_rule()
     write_actions(raw)
-
-
-def write_styles():
-    write_html("<style>"
-               "table, tr, td, th{ border-collapse: collapse; border: 1px solid black; }"
-               "</style>")
-
 
 def write_agenda(raw: Dict[str, str]) -> None:
     html_table_values: List[List[str]] = []
@@ -40,7 +33,7 @@ def write_agenda(raw: Dict[str, str]) -> None:
 
 def write_actions(raw: Dict[str, str]) -> None:
     html_table_values: List[List[str]] = []
-    list_names = ["closed this month", "new", "open"]
+    list_names = ["closed this month", "new", "open", "on hold"]
     for card in get_cards_in_lists(raw, list_names):
         title, owner = get_title_and_owner(card["name"])
         if not card_is_cover(card):
@@ -61,7 +54,7 @@ def write_horizontal_rule():
 
 
 def write_table(headers: List[str], values: List[List[str]]):
-    write_html("<table width=\"100%\" cellpadding=\"9\", cellspacing=\"0\" border=\"0\">")
+    write_html(f"<table width=\"100%\" cellpadding=\"9\", cellspacing=\"0\" border=\"0\" {TABLE_STYLE}>")
     write_table_headers(headers)
     write_html("<tbody>")
     for row in values:
@@ -72,14 +65,14 @@ def write_table(headers: List[str], values: List[List[str]]):
 def write_table_cells(row: List[str]):
     write_html("<tr>")
     for cell in row:
-        write_html(f"<td>{cell}</td>")
+        write_html(f"<td {TABLE_STYLE}>{cell}</td>")
     write_html("</tr>")
 
 
 def write_table_headers(headers: List[str], background_colour: str = HEADER_CELL_BACKGROUND_COLOUR):
     write_html("<thead><tr>")
     for header in headers:
-        write_html(f"<th align=\"left\" bgcolor=\"{background_colour}\">{header}</th>")
+        write_html(f"<th align=\"left\" bgcolor=\"{background_colour}\"  {TABLE_STYLE}>{header}</th>")
 
     write_html("</tr> </thead>")
 
