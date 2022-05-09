@@ -27,3 +27,9 @@ def build(context):
     reformat(context)
     test(context)
     linting(context)
+
+
+@task()
+def generate(context):
+    context.run("python trello_to_html_table\\src\\trello_to_html_table.py --sourcePath export.json > output.html")
+
