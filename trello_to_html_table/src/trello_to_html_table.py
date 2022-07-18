@@ -46,7 +46,7 @@ def write_actions(raw: Dict[str, str]) -> None:
 
 
 def html_strong(value: str) -> str:
-    return f"<strong>{value}</value>"
+    return f"<strong>{value}</strong>"
 
 
 def write_horizontal_rule():
